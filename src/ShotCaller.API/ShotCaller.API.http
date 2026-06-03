@@ -1,0 +1,6 @@
+@ShotCaller.API_HostAddress = http://localhost:5015
+
+GET {{ShotCaller.API_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
