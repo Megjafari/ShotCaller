@@ -2,10 +2,13 @@ using Microsoft.EntityFrameworkCore;
 using ShotCaller.Application.Interfaces;
 using ShotCaller.Infrastructure.Data;
 using ShotCaller.Infrastructure.Repositories;
+using ShotCaller.Application.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
+
+builder.Services.AddScoped<IMatchService, MatchService>();
 
 builder.Services.AddDbContext<ShotCallerDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
