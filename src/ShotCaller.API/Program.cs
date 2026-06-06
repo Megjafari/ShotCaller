@@ -35,6 +35,12 @@ if (app.Environment.IsDevelopment())
     app.MapOpenApi();   
 }
 
+using (var scope = app.Services.CreateScope())
+{
+    var context = scope.ServiceProvider.GetRequiredService<ShotCallerDbContext>();
+    context.Database.Migrate();   // ser till att tabellerna finns
+    DataSeeder.Seed(context);
+}
 
 app.UseHttpsRedirection();
 app.UseCors("AllowFrontend");
