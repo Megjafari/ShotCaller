@@ -8,4 +8,5 @@
   <Folder Name="/tests/">
     <Project Path="tests/ShotCaller.Tests/ShotCaller.Tests.csproj" />
   </Folder>
+  <Project Path="frontend/frontend.csproj" />
 </Solution>

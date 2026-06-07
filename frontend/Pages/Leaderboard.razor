@@ -1,0 +1,61 @@
+@page "/leaderboard"
+@using frontend.Models
+@inject HttpClient Http
+
+<h1>Leaderboard</h1>
+
+@if (loading)
+{
+    <p>Loading leaderboard...</p>
+}
+else if (error)
+{
+    <p style="color:#ff5c5c">Could not load leaderboard. Is the API running?</p>
+}
+else if (entries is null || entries.Count == 0)
+{
+    <p>No predictions yet.</p>
+}
+else
+{
+    <table>
+        <thead>
+            <tr><th>#</th><th>Player</th><th>Points</th><th>Predictions</th></tr>
+        </thead>
+        <tbody>
+            @{ var rank = 1; }
+            @foreach (var e in entries)
+            {
+                <tr>
+                    <td style="font-family:'Bebas Neue';font-size:1.3rem;color:var(--accent)">@rank</td>
+                    <td>@e.UserName</td>
+                    <td><strong>@e.TotalPoints</strong></td>
+                    <td>@e.PredictionCount</td>
+                </tr>
+                rank++;
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    private List<LeaderboardModel>? entries;
+    private bool loading = true;
+    private bool error = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            entries = await Http.GetFromJsonAsync<List<LeaderboardModel>>("api/leaderboard");
+        }
+        catch
+        {
+            error = true;
+        }
+        finally
+        {
+            loading = false;
+        }
+    }
+}
