@@ -4,8 +4,7 @@
 
 <h1>Predict</h1>
 
-<div style="margin-bottom:1rem">
-    <label>Your name: </label>
+<div style="margin-bottom:1.5rem; display:flex; gap:0.5rem; align-items:center">
     <input @bind="userName" placeholder="Enter your name" />
     <button @onclick="Load">Load my predictions</button>
 </div>
@@ -16,54 +15,49 @@
 }
 else if (error)
 {
-    <p style="color:red">Could not reach the API. Is it running?</p>
+    <p style="color:#ff5c5c">Could not reach the API. Is it running?</p>
 }
 else if (matches is not null)
 {
-    <table>
-        <thead>
-            <tr><th>Match</th><th>Kickoff</th><th>Prediction</th><th></th></tr>
-        </thead>
-        <tbody>
-            @foreach (var m in matches)
-            {
-                var locked = m.KickoffUtc <= DateTime.UtcNow;
-                var existing = myPredictions.FirstOrDefault(p => p.MatchId == m.Id);
-                <tr>
-                    <td>@m.HomeTeam – @m.AwayTeam</td>
-                    <td>@m.KickoffUtc.ToString("yyyy-MM-dd HH:mm")</td>
-                    <td>
-                        @if (locked)
-                        {
-                            <span>Kickoff passed</span>
-                        }
-                        else
-                        {
-                            <input type="number" min="0" style="width:3rem" @bind="homeScores[m.Id]" />
-                            <span> – </span>
-                            <input type="number" min="0" style="width:3rem" @bind="awayScores[m.Id]" />
-                        }
-                    </td>
-                    <td>
-                        @if (!locked && existing is null)
+    <div class="card-grid">
+        @foreach (var m in matches)
+        {
+            var locked = m.KickoffUtc <= DateTime.UtcNow;
+            var existing = myPredictions.FirstOrDefault(p => p.MatchId == m.Id);
+            <div class="match-card">
+                <span class="teams">@m.HomeTeam – @m.AwayTeam</span>
+                <span class="meta">@m.KickoffUtc.ToString("yyyy-MM-dd HH:mm")</span>
+                @if (locked)
+                {
+                    <span class="locked">Kickoff passed</span>
+                }
+                else
+                {
+                    <div class="score-inputs">
+                        <input type="number" min="0" @bind="homeScores[m.Id]" />
+                        <span>–</span>
+                        <input type="number" min="0" @bind="awayScores[m.Id]" />
+                    </div>
+                    <div>
+                        @if (existing is null)
                         {
                             <button @onclick="() => Create(m.Id)">Save</button>
                         }
-                        else if (!locked && existing is not null)
+                        else
                         {
                             <button @onclick="() => Update(existing.Id, m.Id)">Update</button>
-                            <button @onclick="() => Delete(existing.Id)">Delete</button>
+                            <button class="danger" @onclick="() => Delete(existing.Id)">Delete</button>
                         }
-                    </td>
-                </tr>
-            }
-        </tbody>
-    </table>
+                    </div>
+                }
+            </div>
+        }
+    </div>
 }
 
 @if (!string.IsNullOrEmpty(message))
 {
-    <p>@message</p>
+    <p class="msg">@message</p>
 }
 
 @code {
@@ -143,7 +137,7 @@ else if (matches is not null)
         {
             var response = await action();
             message = response.IsSuccessStatusCode ? successMessage : "Something went wrong.";
-            await Load(); // ladda om så listan stämmer
+            await Load();
         }
         catch
         {

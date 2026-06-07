@@ -10,7 +10,7 @@
 }
 else if (error)
 {
-    <p style="color:red">Could not load leaderboard. Is the API running?</p>
+    <p style="color:#ff5c5c">Could not load leaderboard. Is the API running?</p>
 }
 else if (entries is null || entries.Count == 0)
 {
@@ -27,9 +27,9 @@ else
             @foreach (var e in entries)
             {
                 <tr>
-                    <td>@rank</td>
+                    <td style="font-family:'Bebas Neue';font-size:1.3rem;color:var(--accent)">@rank</td>
                     <td>@e.UserName</td>
-                    <td>@e.TotalPoints</td>
+                    <td><strong>@e.TotalPoints</strong></td>
                     <td>@e.PredictionCount</td>
                 </tr>
                 rank++;

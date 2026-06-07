@@ -10,7 +10,7 @@
 }
 else if (error)
 {
-    <p style="color:red">Could not load matches. Is the API running?</p>
+    <p style="color:#ff5c5c">Could not load matches. Is the API running?</p>
 }
 else if (matches is null || matches.Count == 0)
 {
@@ -18,31 +18,24 @@ else if (matches is null || matches.Count == 0)
 }
 else
 {
-    <table>
-        <thead>
-            <tr><th>Group</th><th>Match</th><th>Kickoff</th><th>Result</th></tr>
-        </thead>
-        <tbody>
-            @foreach (var m in matches)
-            {
-                <tr>
-                    <td>@m.Group</td>
-                    <td>@m.HomeTeam – @m.AwayTeam</td>
-                    <td>@m.KickoffUtc.ToString("yyyy-MM-dd HH:mm")</td>
-                    <td>
-                        @if (m.HomeScore is not null)
-                        {
-                            @($"{m.HomeScore} – {m.AwayScore}")
-                        }
-                        else
-                        {
-                            <span>Not played</span>
-                        }
-                    </td>
-                </tr>
-            }
-        </tbody>
-    </table>
+    <div class="card-grid">
+        @foreach (var m in matches)
+        {
+            <div class="match-card">
+                <span class="group-tag">Group @m.Group</span>
+                <span class="teams">@m.HomeTeam – @m.AwayTeam</span>
+                <span class="meta">@m.KickoffUtc.ToString("yyyy-MM-dd HH:mm")</span>
+                @if (m.HomeScore is not null)
+                {
+                    <span class="score">@m.HomeScore – @m.AwayScore</span>
+                }
+                else
+                {
+                    <span class="locked">Not played</span>
+                }
+            </div>
+        }
+    </div>
 }
 
 @code {
