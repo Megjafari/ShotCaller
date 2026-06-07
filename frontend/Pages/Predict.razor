@@ -7,26 +7,28 @@
 <div style="margin-bottom:1rem">
     <label>Your name: </label>
     <input @bind="userName" placeholder="Enter your name" />
+    <button @onclick="Load">Load my predictions</button>
 </div>
 
 @if (loading)
 {
-    <p>Loading matches...</p>
+    <p>Loading...</p>
 }
 else if (error)
 {
-    <p style="color:red">Could not load matches. Is the API running?</p>
+    <p style="color:red">Could not reach the API. Is it running?</p>
 }
-else
+else if (matches is not null)
 {
     <table>
         <thead>
             <tr><th>Match</th><th>Kickoff</th><th>Prediction</th><th></th></tr>
         </thead>
         <tbody>
-            @foreach (var m in matches!)
+            @foreach (var m in matches)
             {
                 var locked = m.KickoffUtc <= DateTime.UtcNow;
+                var existing = myPredictions.FirstOrDefault(p => p.MatchId == m.Id);
                 <tr>
                     <td>@m.HomeTeam – @m.AwayTeam</td>
                     <td>@m.KickoffUtc.ToString("yyyy-MM-dd HH:mm")</td>
@@ -43,9 +45,14 @@ else
                         }
                     </td>
                     <td>
-                        @if (!locked)
+                        @if (!locked && existing is null)
                         {
-                            <button @onclick="() => Submit(m.Id)">Save prediction</button>
+                            <button @onclick="() => Create(m.Id)">Save</button>
+                        }
+                        else if (!locked && existing is not null)
+                        {
+                            <button @onclick="() => Update(existing.Id, m.Id)">Update</button>
+                            <button @onclick="() => Delete(existing.Id)">Delete</button>
                         }
                     </td>
                 </tr>
@@ -61,22 +68,36 @@ else
 
 @code {
     private List<MatchModel>? matches;
-    private bool loading = true;
+    private List<PredictionModel> myPredictions = new();
+    private bool loading = false;
     private bool error = false;
     private string userName = "";
     private string message = "";
     private Dictionary<int, int> homeScores = new();
     private Dictionary<int, int> awayScores = new();
 
-    protected override async Task OnInitializedAsync()
+    private async Task Load()
     {
+        if (string.IsNullOrWhiteSpace(userName))
+        {
+            message = "Enter your name first.";
+            return;
+        }
+
+        loading = true;
+        error = false;
+        message = "";
+
         try
         {
             matches = await Http.GetFromJsonAsync<List<MatchModel>>("api/matches");
+            myPredictions = await Http.GetFromJsonAsync<List<PredictionModel>>($"api/predictions/user/{userName}") ?? new();
+
             foreach (var m in matches!)
             {
-                homeScores[m.Id] = 0;
-                awayScores[m.Id] = 0;
+                var existing = myPredictions.FirstOrDefault(p => p.MatchId == m.Id);
+                homeScores[m.Id] = existing?.PredictedHomeScore ?? 0;
+                awayScores[m.Id] = existing?.PredictedAwayScore ?? 0;
             }
         }
         catch
@@ -89,14 +110,8 @@ else
         }
     }
 
-    private async Task Submit(int matchId)
+    private async Task Create(int matchId)
     {
-        if (string.IsNullOrWhiteSpace(userName))
-        {
-            message = "Enter your name first.";
-            return;
-        }
-
         var dto = new CreatePredictionModel
         {
             UserName = userName,
@@ -104,13 +119,31 @@ else
             PredictedHomeScore = homeScores.GetValueOrDefault(matchId),
             PredictedAwayScore = awayScores.GetValueOrDefault(matchId)
         };
+        await Send(() => Http.PostAsJsonAsync("api/predictions", dto), "Prediction saved!");
+    }
 
+    private async Task Update(int predictionId, int matchId)
+    {
+        var dto = new UpdatePredictionModel
+        {
+            PredictedHomeScore = homeScores.GetValueOrDefault(matchId),
+            PredictedAwayScore = awayScores.GetValueOrDefault(matchId)
+        };
+        await Send(() => Http.PutAsJsonAsync($"api/predictions/{predictionId}", dto), "Prediction updated!");
+    }
+
+    private async Task Delete(int predictionId)
+    {
+        await Send(() => Http.DeleteAsync($"api/predictions/{predictionId}"), "Prediction deleted!");
+    }
+
+    private async Task Send(Func<Task<HttpResponseMessage>> action, string successMessage)
+    {
         try
         {
-            var response = await Http.PostAsJsonAsync("api/predictions", dto);
-            message = response.IsSuccessStatusCode
-                ? "Prediction saved!"
-                : "Something went wrong saving the prediction.";
+            var response = await action();
+            message = response.IsSuccessStatusCode ? successMessage : "Something went wrong.";
+            await Load(); // ladda om så listan stämmer
         }
         catch
         {
