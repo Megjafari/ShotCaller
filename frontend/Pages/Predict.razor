@@ -1,0 +1,120 @@
+@page "/predict"
+@using frontend.Models
+@inject HttpClient Http
+
+<h1>Predict</h1>
+
+<div style="margin-bottom:1rem">
+    <label>Your name: </label>
+    <input @bind="userName" placeholder="Enter your name" />
+</div>
+
+@if (loading)
+{
+    <p>Loading matches...</p>
+}
+else if (error)
+{
+    <p style="color:red">Could not load matches. Is the API running?</p>
+}
+else
+{
+    <table>
+        <thead>
+            <tr><th>Match</th><th>Kickoff</th><th>Prediction</th><th></th></tr>
+        </thead>
+        <tbody>
+            @foreach (var m in matches!)
+            {
+                var locked = m.KickoffUtc <= DateTime.UtcNow;
+                <tr>
+                    <td>@m.HomeTeam – @m.AwayTeam</td>
+                    <td>@m.KickoffUtc.ToString("yyyy-MM-dd HH:mm")</td>
+                    <td>
+                        @if (locked)
+                        {
+                            <span>Kickoff passed</span>
+                        }
+                        else
+                        {
+                            <input type="number" min="0" style="width:3rem" @bind="homeScores[m.Id]" />
+                            <span> – </span>
+                            <input type="number" min="0" style="width:3rem" @bind="awayScores[m.Id]" />
+                        }
+                    </td>
+                    <td>
+                        @if (!locked)
+                        {
+                            <button @onclick="() => Submit(m.Id)">Save prediction</button>
+                        }
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@if (!string.IsNullOrEmpty(message))
+{
+    <p>@message</p>
+}
+
+@code {
+    private List<MatchModel>? matches;
+    private bool loading = true;
+    private bool error = false;
+    private string userName = "";
+    private string message = "";
+    private Dictionary<int, int> homeScores = new();
+    private Dictionary<int, int> awayScores = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            matches = await Http.GetFromJsonAsync<List<MatchModel>>("api/matches");
+            foreach (var m in matches!)
+            {
+                homeScores[m.Id] = 0;
+                awayScores[m.Id] = 0;
+            }
+        }
+        catch
+        {
+            error = true;
+        }
+        finally
+        {
+            loading = false;
+        }
+    }
+
+    private async Task Submit(int matchId)
+    {
+        if (string.IsNullOrWhiteSpace(userName))
+        {
+            message = "Enter your name first.";
+            return;
+        }
+
+        var dto = new CreatePredictionModel
+        {
+            UserName = userName,
+            MatchId = matchId,
+            PredictedHomeScore = homeScores.GetValueOrDefault(matchId),
+            PredictedAwayScore = awayScores.GetValueOrDefault(matchId)
+        };
+
+        try
+        {
+            var response = await Http.PostAsJsonAsync("api/predictions", dto);
+            message = response.IsSuccessStatusCode
+                ? "Prediction saved!"
+                : "Something went wrong saving the prediction.";
+        }
+        catch
+        {
+            message = "Could not reach the API.";
+        }
+    }
+}

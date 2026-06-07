@@ -1,0 +1,68 @@
+@page "/matches"
+@using frontend.Models
+@inject HttpClient Http
+
+<h1>Matches</h1>
+
+@if (loading)
+{
+    <p>Loading matches...</p>
+}
+else if (error)
+{
+    <p style="color:red">Could not load matches. Is the API running?</p>
+}
+else if (matches is null || matches.Count == 0)
+{
+    <p>No matches found.</p>
+}
+else
+{
+    <table>
+        <thead>
+            <tr><th>Group</th><th>Match</th><th>Kickoff</th><th>Result</th></tr>
+        </thead>
+        <tbody>
+            @foreach (var m in matches)
+            {
+                <tr>
+                    <td>@m.Group</td>
+                    <td>@m.HomeTeam – @m.AwayTeam</td>
+                    <td>@m.KickoffUtc.ToString("yyyy-MM-dd HH:mm")</td>
+                    <td>
+                        @if (m.HomeScore is not null)
+                        {
+                            @($"{m.HomeScore} – {m.AwayScore}")
+                        }
+                        else
+                        {
+                            <span>Not played</span>
+                        }
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    private List<MatchModel>? matches;
+    private bool loading = true;
+    private bool error = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            matches = await Http.GetFromJsonAsync<List<MatchModel>>("api/matches");
+        }
+        catch
+        {
+            error = true;
+        }
+        finally
+        {
+            loading = false;
+        }
+    }
+}
